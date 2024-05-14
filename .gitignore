@@ -1,0 +1,7 @@
+\#*
+*~
+bottle/minibrew/pkgs
+bottle/*.gz
+*.rb
+bottlehead/*
+json/*.json
