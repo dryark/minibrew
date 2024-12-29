@@ -5,3 +5,5 @@ bottle/*.gz
 *.rb
 bottlehead/*
 json/*.json
+manifests/*.manifest
+dlinfo.json

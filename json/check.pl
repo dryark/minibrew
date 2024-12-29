@@ -31,17 +31,18 @@ for my $file ( @files ) {
     #print Dumper( $ob->{versions} );
     #print "\n";
     my $version = $ob->{versions}{stable};
+    my $revision = $ob->{revision};
     print "  version: $version\n";
     
     my $manName = $name;
     my $path;
     if( $manName =~ m/(.+)\@(.+)$/ ) {
-       $manName = $1;
-       my $majorV = $2;
-       $path = "$manName/$majorV";
+        $manName = $1;
+        my $majorV = $2;
+        $path = "$manName/$majorV";
     }
     else {
-      $path = $manName;
+        $path = $manName;
     }
     
     my $rebuild = $ob->{bottle}{stable}{rebuild};
@@ -58,7 +59,10 @@ for my $file ( @files ) {
     
     my $trail = "";
     if( $rebuild > 0 ) {
-      $trail = "-$rebuild";
+        $trail = "-$rebuild";
+    }
+    if( $revision > 0 ) {
+        $trail = "_$revision";
     }
     #  https://ghcr.io/v2/homebrew/core/openssl/3/manifests/3.3.0-1  WTF
     #  https://ghcr.io/v2/homebrew/core/krb5/manifests/1.21.2

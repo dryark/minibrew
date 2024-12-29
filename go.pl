@@ -32,15 +32,13 @@ my @basic = qw/
   libplist
   libusbmuxd
   libtasn1
+  libtatsu
   sqlite
   openssl@3
-  mpdecimal
   ideviceinstaller
   libimobiledevice
-  python@3.12
   readline
   ca-certificates
-  krb5
   zstd
   lz4
   libzip

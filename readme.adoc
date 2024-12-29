@@ -1,0 +1,71 @@
+= Minibrew
+
+Minibrew is a miniature self-contained brew for a specific set of packages and versions of those packages.
+
+It allows you to download the metadata needed to install a set of brew packages you specify together in their own directory apart from the "system brew."
+
+You can then ship a small tarball with this metadata and scripts to a user and they can download and setup the binaries for those packages easily without ever utilizing brew itself.
+
+== Configuring the packages desired
+
+Edit the `go.pl` file and place the packages you want into the @basic array starting on line 30.
+
+
+== Fetch the primary metadata ( `dlinfo.json` )
+Then run the `go.pl` script to fetch the metadata.
+
+[source,shell]
+----
+[~/git/minibrew]$ ./go.pl
+----
+
+If some of the packages you specific have a missing dependency the script will error out saying that the dependency is missing. You should then add that dependency to the list in `go.pl` and run the script again.
+
+After the script is run a few things happen:
+
+. A `dlinfo.json` file is created containing the metadata of the packages.
+
+. JSON files with information about each package are written into the `json` folder.
+
+== Fetch package archive size information ( `json/dlsize.json` )
+
+After successfully running `go.pl` without any missing dependencies, you should run the `check.pl` script within the `json` folder.
+
+Do this:
+
+[source,shell]
+----
+[~/git/minibrew]$ cd json
+[~/git/minbrew/json]$ ./check.pl
+----
+
+This will create the file `json/dlsize.json`, which contains the filesizes of each of the possible package archives that may be downloaded when deploying the set of packages.
+
+== Create minibrew_deploy setup
+
+Clone `minibrew_deploy`
+
+Copy `dlinfo.json` and `dlsize.json` into the root of `minibrew_deploy`.
+
+== Create deployable `minibrew.tar.xz`
+
+Run `make` in the `minibrew_deploy` folder.
+
+[source,shell]
+----
+[~/git/minibrew_deploy]$ make
+----
+
+== Deploying minibrew setup
+
+Distribute the `minibrew.tar.xz` archive to whoever needs to deploy the specific package set.
+
+[source,shell]
+----
+[~/]$ mkdir minibrew
+[~/]$ cd minibrew
+[~/minibrew]$ curl http://somesite.com/your_minibrew.tar.xz
+[~/minibrew]$ tar -xf your_minibrew.tar.xz
+[~/minibrew]$ cd your_minibrew
+[~/minibrew/your_minibrew]$ ./deploy.pl
+
