@@ -15,9 +15,13 @@ opendir( my $dh, "." );
 my @files = readdir( $dh );
 closedir( $dh );
 
+open( my $fh, ">dlsize.json" );
+print $fh "{\n  sha256:{\n";
+
 for my $file ( @files ) {
     next if( $file =~ m/^\.+$/ );
     next if( $file !~ m/.+\.json$/ );
+    next if( $file =~ m/dlsize/ );
     print "$file\n";
     my $name = $file;
     $name =~ s/\.json//;
@@ -41,6 +45,17 @@ for my $file ( @files ) {
     }
     
     my $rebuild = $ob->{bottle}{stable}{rebuild};
+    
+    my @shas;
+    
+    my $jsonFiles = $ob->{bottle}{stable}{files};
+    for my $key ( keys %$jsonFiles ) {
+        next if( $key !~ m/^[a-z]/ );
+        my $info = $jsonFiles->{ $key };
+        my $sha = $info->{sha256};
+        push( @shas, $sha ) if( $sha );
+    }
+    
     my $trail = "";
     if( $rebuild > 0 ) {
       $trail = "-$rebuild";
@@ -56,6 +71,7 @@ for my $file ( @files ) {
     my $manJsonText = read_file( $manifestFile );
     my $manOb = decode_json( $manJsonText );
     my $mans = $manOb->{manifests};
+    my %foundShas;
     for my $man ( @$mans ) {
         my $anns = $man->{annotations};
         next if( !$anns );
@@ -72,10 +88,23 @@ for my $file ( @files ) {
             #print $info;
             #exit(0);
         }
-        
+        print $fh "    \"$digest\": $size\n";
         print "  dgsize: $size $digest\n";
+        $foundShas{ $digest } = 1;
+    }
+    
+    for my $sha ( @shas ) {
+        if( !$foundShas{ $sha } ) {
+            my $dl = "https://ghcr.io/v2/homebrew/core/$path/blobs/sha256:$sha";
+            my ( $headSize, $type ) = ghcr_dlsize( $sha, $dl );
+            print $fh "    \"$sha\": $headSize\n";
+            print "  dgsize: $headSize $sha\n";
+        }
     }
 }
+
+print $fh "  }\n}\n";
+close( $fh );
 
 sub ghcr_dlsize {
   my ( $sha, $url ) = @_;

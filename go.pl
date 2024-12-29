@@ -1,6 +1,9 @@
 #!/usr/bin/perl -w
 use strict;
 use File::Slurp qw/read_file/;
+#use lib 'mod';
+#use Ujsonin;
+use JSON::XS qw/decode_json/;
 
 # Manifests can be fetched from ghcr also, but it requires some stupid authentication
 my $gitFormulaBase = "https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula";
@@ -79,6 +82,9 @@ for my $pkg ( @$packages ) {
   $deps{ $depname } = 1;
 }
 
+open( my $fh, ">dlinfo.json" );
+print $fh "{\n  pkgs:[\n";
+
 my $missing = "";
 for my $pkg ( @$packages ) {
   my $name = $pkg->{name};
@@ -89,7 +95,9 @@ for my $pkg ( @$packages ) {
   my $metaUrl = "$gitFormulaBase/$formula";
   my $ghcr = $pkg->{ghcr} || $name;
   my $dlBase = "https://ghcr.io/v2/homebrew/core/$ghcr/blobs/sha256:";
+  
   print "  url: $dlBase\n";
+  print $fh "  {\n    name:\"$name\"\n    url:\"$dlBase\"\n";
   if( ! -e "rb/$metaFile" ) {
     `curl "$metaUrl" -o "rb/$metaFile"`;
   }
@@ -99,6 +107,14 @@ for my $pkg ( @$packages ) {
   if( ! -e "json/$jsonFile" ) {
     `curl "https://formulae.brew.sh/api/formula/$jsonFile" -o "json/$jsonFile"`;
   }
+  
+  #my $root = Ujsonin::parse_file( "json/$jsonFile" );
+  my $jsonText = read_file( "json/$jsonFile" );
+  my $root = decode_json( $jsonText );
+  my $v = $root->{versions}{stable};
+  print $fh "    v:\"$v\"\n";
+  
+  print $fh "    platforms:{\n";
   
   my $meta = read_file( "rb/$metaFile" );
   my @lines = split("\n",$meta);
@@ -121,6 +137,7 @@ for my $pkg ( @$packages ) {
         my $platform = $1;
         my $hash = $2;
         print "  $platform: $hash\n";
+        print $fh "      $platform: \"$hash\"\n";
         if( $platform eq 'ventura' || $platform eq 'all' ) {
           my $full = "$dlBase$hash";
           my $save = "bottle/$name.tar.gz";
@@ -144,7 +161,10 @@ for my $pkg ( @$packages ) {
     }
     
   }
+  print $fh "    }\n  }\n";
 }
+print $fh "  ]\n}\n";
+close( $fh );
 
 sub ghcr_dl {
   my ( $url, $out ) = @_;
@@ -153,8 +173,8 @@ sub ghcr_dl {
   my $auth = '--header "Authorization: Bearer QQ=="';
   my $fixed = "--disable --cookie /dev/null --globoff --show-error $ua $lang --fail --retry 3 $auth --remote-time";
   
-  `curl $fixed --location $url -o $out`;
-  #print "curl $fixed $url -o $out\n";
+  #`curl $fixed --location $url -o $out`;
+  print "curl $fixed --location $url -o $out\n";
 }
 
 print $missing;
